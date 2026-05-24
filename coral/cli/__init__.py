@@ -59,6 +59,10 @@ _VISIBLE_COMMANDS = [
     "revert",
     "checkout",
     "heartbeat",
+    "login",
+    "logout",
+    "whoami",
+    "providers",
 ]
 
 
@@ -123,6 +127,12 @@ Agent Internals:
   revert          Undo the last commit
   checkout        Reset to a previous attempt
   heartbeat       View/modify per-agent heartbeat actions
+
+Account:
+  login           Link this machine to a hosted CORAL provider
+  logout          Drop saved credentials for a provider
+  whoami          Show the active account
+  providers       List all linked providers
 
 Run 'coral <command> --help' for details on any command."""
 
@@ -504,6 +514,82 @@ Run 'coral <command> --help' for details on any command."""
     hb_reset = hb_sub.add_parser("reset", help="Reset to task YAML defaults")
     _add_run_args(hb_reset)
 
+    # --- Account ---
+
+    p_login = sub.add_parser(
+        "login",
+        help="Link this machine to a hosted CORAL provider",
+        description=(
+            "Run an OAuth 2.0 Device Authorization Grant against a hosted\n"
+            "CORAL provider (e.g. Reef). Prints a short code, opens your\n"
+            "browser to confirm, then stores the access token locally.\n\n"
+            "Credentials are stored under "
+            "$XDG_CONFIG_HOME/coral/credentials.json\n"
+            "(default: ~/.config/coral/credentials.json) with mode 0600.\n"
+            "Override the path with $CORAL_AUTH_FILE."
+        ),
+        epilog=(
+            "Examples:\n"
+            "  coral login https://reef.example.com\n"
+            "  coral login https://reef.example.com --no-browser"
+        ),
+        formatter_class=_CommandHelpFormatter,
+    )
+    p_login.add_argument(
+        "provider",
+        help="URL of the hosted CORAL provider (e.g. https://reef.example.com)",
+    )
+    p_login.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="Don't try to open the verification URL automatically.",
+    )
+
+    p_logout = sub.add_parser(
+        "logout",
+        help="Drop saved credentials for a provider",
+        description=(
+            "Remove this machine's stored token for one provider. With no\n"
+            "argument, logs out of the currently-active provider."
+        ),
+        epilog=(
+            "Examples:\n"
+            "  coral logout\n"
+            "  coral logout https://reef.example.com\n"
+            "  coral logout --all"
+        ),
+        formatter_class=_CommandHelpFormatter,
+    )
+    p_logout.add_argument(
+        "provider",
+        nargs="?",
+        default=None,
+        help="Provider URL to log out of (default: active provider).",
+    )
+    p_logout.add_argument(
+        "--all",
+        action="store_true",
+        help="Log out of every linked provider.",
+    )
+
+    p_whoami = sub.add_parser(
+        "whoami",
+        help="Show the active account",
+        description="Print the active account's identity + provider URL.",
+        formatter_class=_CommandHelpFormatter,
+    )
+    p_whoami.add_argument(
+        "--provider",
+        help="Show the account for this provider URL instead of the active one.",
+    )
+
+    sub.add_parser(
+        "providers",
+        help="List all linked providers",
+        description="List every provider this machine has tokens for. Marks the active one.",
+        formatter_class=_CommandHelpFormatter,
+    )
+
     # --- Parse and dispatch ---
 
     args = parser.parse_args()
@@ -513,6 +599,7 @@ Run 'coral <command> --help' for details on any command."""
         sys.exit(0)
 
     # Lazy imports for fast startup
+    from coral.cli.auth import cmd_login, cmd_logout, cmd_providers, cmd_whoami
     from coral.cli.author import cmd_init, cmd_validate
     from coral.cli.eval import cmd_checkout, cmd_diff, cmd_eval, cmd_revert, cmd_wait
     from coral.cli.heartbeat import cmd_heartbeat
@@ -539,6 +626,10 @@ Run 'coral <command> --help' for details on any command."""
         "init": cmd_init,
         "validate": cmd_validate,
         "ui": cmd_ui,
+        "login": cmd_login,
+        "logout": cmd_logout,
+        "whoami": cmd_whoami,
+        "providers": cmd_providers,
         # Hidden aliases for backward compatibility
         "attempts": _cmd_attempts_compat,
         "attempt": cmd_show,
