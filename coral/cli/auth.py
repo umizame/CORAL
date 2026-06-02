@@ -18,13 +18,11 @@ import argparse
 import datetime as _dt
 import sys
 import webbrowser
-from datetime import timezone
 
 from coral.auth import (
-    AccessDenied,
+    AccessDeniedError,
     AuthError,
-    AuthorizationExpired,
-    Credentials,
+    AuthorizationExpiredError,
     DeviceCodeResponse,
     ProviderCredentials,
     UserInfo,
@@ -79,10 +77,10 @@ def cmd_login(args: argparse.Namespace) -> None:
             provider_url,
             on_user_code=lambda c: _print_user_code(c, open_browser=not args.no_browser),
         )
-    except AccessDenied:
+    except AccessDeniedError:
         print("error: authorization denied by user", file=sys.stderr)
         sys.exit(1)
-    except AuthorizationExpired:
+    except AuthorizationExpiredError:
         print(
             "error: the device code expired before you authorized it. "
             "Run `coral login` again.",
@@ -104,7 +102,7 @@ def cmd_login(args: argparse.Namespace) -> None:
     expires_at = None
     if poll.expires_in is not None:
         expires_at = (
-            _dt.datetime.now(timezone.utc) + _dt.timedelta(seconds=poll.expires_in)
+            _dt.datetime.now(_dt.UTC) + _dt.timedelta(seconds=poll.expires_in)
         ).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     creds = load_credentials()

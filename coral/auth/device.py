@@ -17,8 +17,8 @@ The flow:
        - 200 with access_token / refresh_token / token_type / expires_in (success)
        - 400 { "error": "authorization_pending" }  — keep polling
        - 400 { "error": "slow_down" }              — increase interval by 5s
-       - 400 { "error": "access_denied" }          — user rejected; AccessDenied
-       - 400 { "error": "expired_token" }          — device_code expired; AuthorizationExpired
+       - 400 { "error": "access_denied" }          — user rejected; AccessDeniedError
+       - 400 { "error": "expired_token" }          — device_code expired; AuthorizationExpiredError
        - other 4xx/5xx                              — AuthError
 
 This module is provider-agnostic: any compliant device-grant
@@ -31,8 +31,9 @@ from __future__ import annotations
 import logging
 import time
 import urllib.parse
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 import httpx
 
@@ -58,11 +59,11 @@ class AuthError(Exception):
     """Anything wrong with the device-grant exchange that isn't user-driven."""
 
 
-class AccessDenied(AuthError):
+class AccessDeniedError(AuthError):
     """User explicitly declined the authorization on the provider page."""
 
 
-class AuthorizationExpired(AuthError):
+class AuthorizationExpiredError(AuthError):
     """The device_code expired before the user completed authorization."""
 
 
@@ -188,7 +189,7 @@ def poll_for_token(
     try:
         while True:
             if now() >= deadline:
-                raise AuthorizationExpired(
+                raise AuthorizationExpiredError(
                     "device code expired before the user authorized it"
                 )
             sleep(current_interval)
@@ -227,9 +228,9 @@ def poll_for_token(
                 current_interval = min(MAX_POLL_INTERVAL, current_interval + 5.0)
                 continue
             if err == "access_denied":
-                raise AccessDenied("authorization was denied by the user")
+                raise AccessDeniedError("authorization was denied by the user")
             if err == "expired_token":
-                raise AuthorizationExpired("device code expired")
+                raise AuthorizationExpiredError("device code expired")
             raise AuthError(
                 f"unexpected token-poll response "
                 f"(HTTP {resp.status_code}, error={err!r}): {resp.text[:200]}"

@@ -11,22 +11,19 @@ tests.
 
 from __future__ import annotations
 
-import json
-
 import httpx
 import pytest
 
 from coral.auth.device import (
-    AccessDenied,
-    AuthError,
-    AuthorizationExpired,
     DEVICE_CODE_GRANT_TYPE,
+    AccessDeniedError,
+    AuthError,
+    AuthorizationExpiredError,
     device_login,
     normalize_provider_url,
     poll_for_token,
     request_device_code,
 )
-
 
 # ---------- normalize_provider_url ----------
 
@@ -269,7 +266,7 @@ def test_poll_access_denied_raises():
         return httpx.Response(400, json={"error": "access_denied"})
 
     now, sleep = _fake_clock()
-    with _client_from_handler(handler) as client, pytest.raises(AccessDenied):
+    with _client_from_handler(handler) as client, pytest.raises(AccessDeniedError):
         poll_for_token(
             "https://reef.app",
             "d",
@@ -286,7 +283,7 @@ def test_poll_expired_token_raises():
         return httpx.Response(400, json={"error": "expired_token"})
 
     now, sleep = _fake_clock()
-    with _client_from_handler(handler) as client, pytest.raises(AuthorizationExpired):
+    with _client_from_handler(handler) as client, pytest.raises(AuthorizationExpiredError):
         poll_for_token(
             "https://reef.app",
             "d",
@@ -298,7 +295,7 @@ def test_poll_expired_token_raises():
         )
 
 
-def test_poll_unknown_error_raises_authError():
+def test_poll_unknown_error_raises_auth_error():
     def handler(_):
         return httpx.Response(400, json={"error": "bogus_thing"})
 
@@ -316,7 +313,7 @@ def test_poll_unknown_error_raises_authError():
 
 
 def test_poll_deadline_expires_raises():
-    """If the device_code expires_in is hit, raise AuthorizationExpired."""
+    """If the device_code expires_in is hit, raise AuthorizationExpiredError."""
 
     def handler(_):
         return httpx.Response(400, json={"error": "authorization_pending"})
@@ -329,7 +326,7 @@ def test_poll_deadline_expires_raises():
     def sleep(s):
         t[0] += s
 
-    with _client_from_handler(handler) as client, pytest.raises(AuthorizationExpired):
+    with _client_from_handler(handler) as client, pytest.raises(AuthorizationExpiredError):
         poll_for_token(
             "https://reef.app",
             "d",

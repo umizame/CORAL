@@ -9,7 +9,7 @@ Public API:
 
     from coral.auth import (
         load_credentials, save_credentials, delete_credentials,
-        device_login, AuthError, AccessDenied, AuthorizationExpired,
+        device_login, AuthError, AccessDeniedError, AuthorizationExpiredError,
     )
 
 The CLI surface (`coral login`, `coral logout`, `coral whoami`,
@@ -29,9 +29,9 @@ from coral.auth.credentials import (
     save_credentials,
 )
 from coral.auth.device import (
-    AccessDenied,
+    AccessDeniedError,
     AuthError,
-    AuthorizationExpired,
+    AuthorizationExpiredError,
     DeviceCodeResponse,
     device_login,
     fetch_user_info,
@@ -39,9 +39,9 @@ from coral.auth.device import (
 )
 
 __all__ = [
-    "AccessDenied",
+    "AccessDeniedError",
     "AuthError",
-    "AuthorizationExpired",
+    "AuthorizationExpiredError",
     "Credentials",
     "DeviceCodeResponse",
     "ProviderCredentials",
